@@ -42,7 +42,7 @@ class FastBlocker:
 
         # 2. Compact 5-char Prefix (catches concatenated domain names like krishnaengineering.com)
         compact = name.replace(" ", "")
-        if len(compact) >= 4:
+        if len(compact) >= 5 and not compact.startswith(('societe', 'sarl', 'sas', 'eurl', 'hotel', 'restau')):
             tokens.add(f"npref5_{compact[:5]}")
 
         # 3. Address Tokens
@@ -80,10 +80,10 @@ class FastBlocker:
             for t in toks:
                 token_to_s23[t].append(idx)
 
-        # Filter out hyper-frequent stop tokens (>3,500 matches) or singleton tokens
-        max_freq = 3500
+        # Filter out hyper-frequent stop tokens (>1,500 matches) or singleton tokens
+        max_freq = 1500
         valid_inverted_index = {t: arr for t, arr in token_to_s23.items() if 1 < len(arr) <= max_freq}
-        print(f"   Built Inverted Index in {time.time()-t0:.2f}s | Valid Tokens: {len(valid_inverted_index):,}")
+        print(f"   Built Inverted Index in {time.time()-t0:.2f}s | Valid Tokens: {len(valid_inverted_index):,}", flush=True)
 
         # 2. Parallel Candidate Retrieval via posting list counts
         candidates = defaultdict(set)
@@ -117,8 +117,10 @@ class FastBlocker:
                     chunk_res[s1_id] = c_set
             return chunk_res
 
+        import os
         from joblib import Parallel, delayed
-        chunk_results = Parallel(n_jobs=10, prefer="threads")(
+        n_workers = min(16, max(4, os.cpu_count() or 4))
+        chunk_results = Parallel(n_jobs=n_workers, prefer="threads")(
             delayed(_retrieve_chunk)(s, e) for s, e in chunks
         )
 
@@ -126,7 +128,7 @@ class FastBlocker:
             for s1_id, c_set in res.items():
                 candidates[s1_id].update(c_set)
 
-        print(f"   Candidate Retrieval completed in {time.time()-t_cand:.2f}s")
+        print(f"   Candidate Retrieval completed in {time.time()-t_cand:.2f}s", flush=True)
         return candidates
 
     def generate_candidates(self, df_s1: pd.DataFrame, df_s2: pd.DataFrame, df_s3: pd.DataFrame) -> dict[str, set[str]]:
