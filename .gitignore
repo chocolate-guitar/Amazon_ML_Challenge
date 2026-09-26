@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Heavy model artifacts and training outputs (to be trained on SageMaker)
+models/*.joblib
+models/*.tar.gz
+output/*.tsv
+
+# Datasets (large files)
+dataset/
+*.tsv
+*.csv
+*.zip
+
+# Local environment / IDE
+.venv/
+env/
+venv/
+.idea/
+.vscode/
