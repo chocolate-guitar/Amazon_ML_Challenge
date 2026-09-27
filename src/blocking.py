@@ -92,7 +92,7 @@ class FastBlocker:
         chunk_size = 20000
         chunks = [(i, min(i + chunk_size, n_s1)) for i in range(0, n_s1, chunk_size)]
 
-        def _retrieve_chunk(start_idx, end_idx):
+        def _retrieve_chunk(chunk_id, start_idx, end_idx):
             chunk_res = {}
             for s1_idx in range(start_idx, end_idx):
                 s1_id = s1_ids[s1_idx]
@@ -115,13 +115,18 @@ class FastBlocker:
                         c_set.add(s23_ids[target_idx])
                 if c_set:
                     chunk_res[s1_id] = c_set
+
+            if chunk_id % 3 == 0 or end_idx >= n_s1:
+                pct = (end_idx / n_s1) * 100.0
+                print(f"      Retrieval Progress: {end_idx:,} / {n_s1:,} entities ({pct:.1f}%) complete...", flush=True)
+
             return chunk_res
 
         import os
         from joblib import Parallel, delayed
         n_workers = min(16, max(4, os.cpu_count() or 4))
         chunk_results = Parallel(n_jobs=n_workers, prefer="threads")(
-            delayed(_retrieve_chunk)(s, e) for s, e in chunks
+            delayed(_retrieve_chunk)(idx, s, e) for idx, (s, e) in enumerate(chunks)
         )
 
         for res in chunk_results:
